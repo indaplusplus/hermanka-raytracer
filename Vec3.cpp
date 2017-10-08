@@ -24,6 +24,10 @@ Vec3 Vec3::normalize() {
   return *this / this->norm();
 }
 
+Vec3 Vec3::reflect_as_normal(Vec3 normal) {
+  return *this - normal * 2 * (*this * normal);
+}
+
 Vec3 min_dist_point(Vec3 to_1, Vec3 to_2, Vec3 from) {
   if (to_1 == Vec3::Null) return to_2;
   if (to_2 == Vec3::Null) return to_1;

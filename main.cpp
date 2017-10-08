@@ -11,6 +11,7 @@ const double ImageZ = 0;
 Vec3 eye_origin(image_width/2, image_height/2, -1000);
 Vec3 light_source(100, 100, -2200);
 const double shadow_intensity = 0.3;
+const int MaxRecursionDepth = 2;
 
 int n_circles;
 std::vector<Circle> circles;
@@ -29,7 +30,9 @@ void write_image() {
     for (int col = 0; col < image_width; ++col) {
       Vec3& pos = row[col];
       if (col > 0) out << " ";
-      out << int(255 * pos.x) << " " << int(255 * pos.y) << " " << int(255 * pos.z);
+      out << int(std::round(255 * pos.x)) << " "
+          << int(std::round(255 * pos.y)) << " "
+          << int(std::round(255 * pos.z));
     }
     out << std::endl;
   }
@@ -42,10 +45,10 @@ void read_input() {
   //light_source: x y z
   //eye_origin: x y z
   //number of circles: n
-  //n rows of circle information: x y z radius r g b
+  //n rows of circle information: x y z radius r g b reflection_index
   std::ifstream in(input_file);
   if (!in.is_open()) {
-    //TODO: some nice error message
+    std::cerr << "couldn't find input file" << std::endl;
     exit(1);
   }
 
@@ -59,7 +62,8 @@ void read_input() {
   for (int _ = 0; _ < n_circles; ++_) {
     double x, y, z, radius;
     double r, g, b;
-    in >> x >> y >> z >> radius >> r >> g >> b;
+    double reflection_index;
+    in >> x >> y >> z >> radius >> r >> g >> b >> reflection_index;
     circles.emplace_back(Vec3(x, y, z), radius, Vec3(r/255, g/255, b/255));
   }
 }
@@ -68,14 +72,12 @@ void print_debug() {
   Vec3 dir = (Vec3(100, 100, ImageZ) - eye_origin).normalize();
   for (Circle &circle : circles) {
     Vec3 intersect = circle.closest_intersection_with_ray(eye_origin, dir);
-    std::cerr << intersect.x <<" " << intersect.y << " " << intersect.z << std::endl;
+    std::cerr << intersect.x << " " << intersect.y << " " << intersect.z << std::endl;
   }
 }
 
 
-Vec3 get_pixel_color(double x, double y) {
-  Vec3 origin = eye_origin;
-  Vec3 direction = (Vec3(x, y, ImageZ) - origin).normalize();
+Vec3 trace_reflection(Vec3 origin, Vec3 direction, int depth) {
   Vec3 bounce_point = Vec3::Null;
   Circle best_circle = Circle::Null;
   double best_dist = 1e20;
@@ -93,8 +95,6 @@ Vec3 get_pixel_color(double x, double y) {
 
   if (best_circle == Circle::Null) return Vec3(0,0,0);
 
-  //std::cerr << best_circle.radius << std::endl;
-
   Vec3 light_dir = (light_source - bounce_point).normalize();
   bool is_in_shadow = false;
 
@@ -105,12 +105,28 @@ Vec3 get_pixel_color(double x, double y) {
     is_in_shadow = true;
   }
 
+  Vec3 normal = (bounce_point - best_circle.center).normalize();
+  Vec3 color_from_light;
+
   if (is_in_shadow) {
-    return best_circle.color * shadow_intensity;
+    color_from_light = best_circle.color * shadow_intensity;
   } else {
-    Vec3 normal = (bounce_point - best_circle.center).normalize();
-    return best_circle.color * (normal * light_dir + 1)/2;
+    color_from_light = best_circle.color * (normal * light_dir + 1)/2;
   }
+
+  if (depth >= MaxRecursionDepth || best_circle.reflection_index < 1e-10)
+    return color_from_light;
+
+  std::cerr << "lol" << std::endl;
+  Vec3 reflection_vec = direction.reflect_as_normal(normal);
+  return color_from_light * (1 - best_circle.reflection_index) +
+         trace_reflection(origin, reflection_vec, depth+1) * best_circle.reflection_index;
+}
+
+Vec3 get_pixel_color(double x, double y) {
+  Vec3 origin = eye_origin;
+  Vec3 direction = (Vec3(x, y, ImageZ) - origin).normalize();
+  return trace_reflection(origin, direction, 0);
 }
 
 void do_ray_trace() {
@@ -124,7 +140,7 @@ void do_ray_trace() {
 int main(int argc, const char* argv[]) {
   std::vector <std::string> args(argv, argv + argc);
   if (argc < 3) {
-    //TODO: some nice error message
+    std::cerr <<"Usage: "<< args[0] << " inputfile outputfile.ppm" << std::endl;
     exit(1);
   }
 

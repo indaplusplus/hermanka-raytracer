@@ -16,11 +16,13 @@ public:
   Vec3 center;
   double radius;
   Vec3 color;
+  double reflection_index;
 
   static Circle Null;
 
-  explicit Circle (Vec3 center = Vec3(), double radius = 1, Vec3 color = Vec3(.7,.5,.9)) :
-      center(center), radius(radius), color(color) {}
+  explicit Circle (Vec3 center = Vec3(), double radius = 1,
+                   Vec3 color = Vec3(.7,.5,.9), double reflection_index = 0) :
+      center(center), radius(radius), color(color), reflection_index(reflection_index) {}
 
   bool operator==(Circle);
 

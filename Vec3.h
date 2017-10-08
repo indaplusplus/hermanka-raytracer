@@ -20,6 +20,8 @@ public:
 
   double norm();
   Vec3 normalize();
+  Vec3 reflect_as_normal(Vec3);
+
 
   Vec3 operator+ (Vec3);
   Vec3 operator- ();
