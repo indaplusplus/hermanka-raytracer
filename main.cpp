@@ -167,6 +167,7 @@ int main(int argc, const char* argv[]) {
   output_file = args[2];
 
   read_input();
+  std::cerr << "-" << std::endl;
   do_ray_trace();
   write_image();
 
