@@ -3,7 +3,7 @@ from random import randint
 image_width, image_height = 1800, 1300
 eye_pos = (0, 0, -2000)
 
-n_lights = randint(5, 20)
+n_lights = 5#randint(5, 10)
 lights = [(randint(-4000, 4000), randint(-4000, 4000), randint(-4000, 4000)) for _ in range(n_lights)]
 
 def generate_sphere():
