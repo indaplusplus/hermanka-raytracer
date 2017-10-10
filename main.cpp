@@ -16,7 +16,7 @@ Vec3 right_direction(1, 0, 0);
 Vec3 background_color(0,0,0);
 
 const double shadow_intensity = 0.3;
-const int MaxRecursionDepth = 5;
+const int MaxRecursionDepth = 15;
 
 int n_circles;
 int n_lights;
@@ -50,8 +50,8 @@ void read_input() {
   //(everything integers)
   //image_width image_height
   //eye_position: x y z
-  //number of lightsources: m
-  //m lines of lightsources: x y z
+  //number of light sources: m
+  //m lines of light sources: x y z
   //number of circles: n
   //n lines of circle information: x y z radius r g b reflection_index
   std::ifstream in(input_file);
@@ -92,62 +92,11 @@ void print_debug() {
   }
 }
 
-/*Vec3 trace(Vec3 origin, Vec3 direction, int depth) {
-  Vec3 bounce_point = Vec3::Null;
-  Circle best_circle = Circle::Null;
-  double best_dist = 1e20;
-
-  for (Circle &circle : circles) {
-    auto intersection = circle.closest_intersection_with_ray(origin, direction);
-    if (intersection == Vec3::Null) continue;
-    double dist = (intersection - origin).norm();
-    if (dist < best_dist) {
-      bounce_point = intersection;
-      best_circle = circle;
-      best_dist = dist;
-    }
-  }
-
-  if (best_circle == Circle::Null) return Vec3(0,0,0);
-
-  bool is_in_shadow = false;
-
-  for (Vec3 & light_source : light_sources) {
-    Vec3 light_dir = (light_source - bounce_point).normalize();
-
-    for (Circle &circle : circles) {
-      //if (circle == best_circle) continue;
-      auto intersection = circle.closest_intersection_with_ray(bounce_point, light_dir);
-      if (intersection == Vec3::Null) continue;
-      if ((intersection - bounce_point).norm() > (light_source - bounce_point).norm()) continue;
-      is_in_shadow = true;
-    }
-  }
-  Vec3 normal = (bounce_point - best_circle.center).normalize();
-  Vec3 color_from_light;
-
-  if (is_in_shadow) {
-    color_from_light = best_circle.color * shadow_intensity;
-  } else {
-    color_from_light = best_circle.color * (normal * light_dir + 1)/2;
-  }
-
-  Vec3 reflection_vec = direction.reflect_as_normal(normal);
-  bool has_reflection = 0;
-  for (Circle &circle : circles) {
-    if (circle.closest_intersection_with_ray(bounce_point, reflection_vec) == Vec3::Null) continue;
-    has_reflection = 1;
-  }
-  if (depth >= MaxRecursionDepth || !has_reflection)
-    return color_from_light;
-
-  return trace(origin, reflection_vec, depth + 1).mul(color_from_light);
-}*/
-
-Vec3 trace(Vec3 origin, Vec3 direction, int depth) {
+Vec3 trace(Vec3 origin, Vec3 direction, int depth, Circle prev) {
   Vec3 intersect_point = Vec3::Null;
   Circle intersect_circle = Circle::Null;
   for (Circle &circle : circles) {
+    if (circle == prev) continue;
     Vec3 intersection = circle.first_intersection(origin, direction);
     if (!(intersection == Vec3::Null) && (intersect_point == Vec3::Null ||
          (intersect_point - origin).norm() > (intersection - origin).norm())) {
@@ -163,10 +112,11 @@ Vec3 trace(Vec3 origin, Vec3 direction, int depth) {
   double light_intensity = 0;
 
   for (Vec3 &light : light_sources) {
+    if ((intersect_circle.center - light).norm() < intersect_circle.radius) continue;
     bool blocked = 0;
     Vec3 light_dir = (light - intersect_point).normalize();
     for (Circle &circle : circles) {
-      Vec3 intersection = circle.closest_intersection_with_ray(intersect_point, light_dir);
+      Vec3 intersection = circle.first_intersection(intersect_point, light_dir);
       if (!(intersection == Vec3::Null) &&
           (intersect_point - intersection).norm() < (intersect_point - light).norm()) {
         blocked = 1;
@@ -183,18 +133,19 @@ Vec3 trace(Vec3 origin, Vec3 direction, int depth) {
   Vec3 reflection_dir = (normal - direction * (normal * direction) * 2);
 
   return intersect_circle.color * light_intensity +
-      trace(intersect_point, reflection_dir, depth + 1) * intersect_circle.reflection_index;
+      trace(intersect_point + (reflection_dir*0.01), reflection_dir, depth + 1, intersect_circle) *
+        intersect_circle.reflection_index;
 }
 
 
 Vec3 get_pixel_color(double row, double col) {
   double y = image_height/2.0 - row;
   double x = col - image_width/2.0;
-  Vec3 pixel_position = eye_position + forward_direction * image_distance_from_eye +
-      (right_direction * x + up_direction * y) * pixel_size;
+  Vec3 pixel_position(x, y, 0); //= eye_position + forward_direction * image_distance_from_eye +
+      //(right_direction * x + up_direction * y) * pixel_size;
   //std::cerr << pixel_position.x << " " << pixel_position.y << " " << pixel_position.z << std::endl;
   Vec3 direction = (pixel_position - eye_position).normalize();
-  return trace(eye_position, direction, 0);
+  return trace(eye_position, direction, 0, Circle::Null);
 }
 
 void do_ray_trace() {
