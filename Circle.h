@@ -29,6 +29,8 @@ public:
   std::pair<Vec3, Vec3> intersection_with_ray(Vec3, Vec3);
 
   Vec3 closest_intersection_with_ray(Vec3, Vec3);
+
+  Vec3 first_intersection(Vec3, Vec3);
 };
 
 #endif //RAYTRACER_CIRCLE_H

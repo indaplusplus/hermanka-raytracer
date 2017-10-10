@@ -19,6 +19,7 @@ public:
   Vec3(double x = 0, double y = 0, double z = 0) : x(x), y(y), z(z) {}
 
   double norm();
+  Vec3 mul(Vec3);
   Vec3 normalize();
   Vec3 reflect_as_normal(Vec3);
 

@@ -31,3 +31,17 @@ Vec3 Circle::closest_intersection_with_ray(Vec3 origin, Vec3 direction) {
   return min_dist_point(intersections.first, intersections.second, origin);
 }
 
+Vec3 Circle::first_intersection(Vec3 origin, Vec3 direction) {
+  double part_1 = -(direction*(origin - center));
+  double part_2 = pow(direction*(origin - center), 2) - pow((origin - center).norm(), 2) + pow(radius, 2);
+
+  if (part_2 < eps) return Vec3::Null;
+
+  double d1 = (part_1 + sqrt(part_2));
+  double d2 = (part_1 - sqrt(part_2));
+
+  if (d2 > eps) return origin + direction * d2;
+  if (d1 > eps) return origin + direction * d1;
+  return Vec3::Null;
+}
+
